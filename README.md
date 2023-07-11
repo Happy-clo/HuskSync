@@ -33,7 +33,7 @@
 
 **⭐ Complete player synchronisation** &mdash; Sync inventories, Ender Chests, health, hunger, effects, advancements, statistics, locked maps & [more](https://william278.net/docs/husksync/sync-features)—no data left behind!
 
-**⭐ Backup, restore & rotate** &mdash; Something gone wrong? Restore players back to a previous data state. Rotate and manage data snapshots in-game!
+**⭐ Backup, restore & rotate** &mdash; Something gone wrong? Restore players back to a previous data state. Rotate and manage data snapshots in game!
 
 **⭐ Import existing data** &mdash; Import your MySQLPlayerDataBridge data—or from your existing world data! No server reset needed!
 
