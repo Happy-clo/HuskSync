@@ -26,8 +26,6 @@ jobs:
         run: git config --global user.email "actions@github.com" && git config --global user.name "Github Actions"
       - name: Apply Patches
         run: ./gradlew clean build
-      - name: Build
-        run: ./gradlew createReobfBundlerJar
       - name: upload
         uses: actions/upload-artifact@v3
         with:
