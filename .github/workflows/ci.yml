@@ -51,8 +51,8 @@ jobs:
       - name: Find And Rename
         run:  |
              cd target/
-             mv HuskSync-Bukkit-*jar HuskSync.jar
-             mv HuskSync-Plugin-*jar HuskSync-Plugin.jar
+             mv HuskSync-Bukkit-*.jar HuskSync.jar
+             mv HuskSync-Plugin-*.jar HuskSync-Plugin.jar
       - name: upload
         uses: actions/upload-artifact@v3
         with:
