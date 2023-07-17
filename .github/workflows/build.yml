@@ -29,5 +29,5 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@v3
         with:
-         name: HuskSync
+         name: HuskPlugin
          path: target/*.jar
