@@ -17,35 +17,19 @@
  *  limitations under the License.
  */
 
-package net.william278.husksync.redis;
+package net.william278.husksync;
 
+import net.william278.husksync.listener.BukkitEventListener;
+import net.william278.husksync.listener.PaperEventListener;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Locale;
-
-public enum RedisKeyType {
-    DATA_UPDATE(10),
-    SERVER_SWITCH(10),
-    DATA_CHECKOUT(60 * 60 * 24 * 7 * 52);
-
-    private final int timeToLive;
-
-    RedisKeyType(int timeToLive) {
-        this.timeToLive = timeToLive;
-    }
+@SuppressWarnings("unused")
+public class PaperHuskSync extends BukkitHuskSync {
 
     @NotNull
-    public String getKeyPrefix(@NotNull String clusterId) {
-        return String.format(
-                "%s:%s:%s",
-                RedisManager.KEY_NAMESPACE.toLowerCase(Locale.ENGLISH),
-                clusterId.toLowerCase(Locale.ENGLISH),
-                name().toLowerCase(Locale.ENGLISH)
-        );
-    }
-
-    public int getTimeToLive() {
-        return timeToLive;
+    @Override
+    protected BukkitEventListener createEventListener() {
+        return new PaperEventListener(this);
     }
 
 }
