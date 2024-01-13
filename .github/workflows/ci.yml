@@ -40,3 +40,22 @@ jobs:
          title: "HuskSync 自动构建最新版本"
          files: |
            target/*.jar
+  runtime-test:
+    name: Plugin Runtime Test 
+    needs: [build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - mcVersion: '1.8.8'
+            javaVersion: '8'
+          - mcVersion: '1.12.2'
+            javaVersion: '8'
+          - mcVersion: '1.20.2'
+            javaVersion: '20'   
+    steps:        
+      - uses: HaHaWTH/minecraft-plugin-runtime-test@paper
+        with:
+          server-version: ${{ matrix.mcVersion }}
+          java-version: ${{ matrix.javaVersion }}
+          artifact-name: HuskSync
