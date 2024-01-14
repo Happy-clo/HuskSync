@@ -118,8 +118,8 @@ subprojects {
                     }
                     if (System.getenv("SNAPSHOTS_MAVEN_USERNAME") != null) {
                         maven {
-                            name = "husksync"
-                            url = "https://github.com/Happy-clo/HuskSync"
+                            name = "william278-snapshots"
+                            url = "https://repo.william278.net/snapshots"
                             credentials {
                                 username = System.getenv("SNAPSHOTS_MAVEN_USERNAME")
                                 password = System.getenv("SNAPSHOTS_MAVEN_PASSWORD")
@@ -133,9 +133,9 @@ subprojects {
 
                 publications {
                     mavenJava(MavenPublication) {
-                        groupId = 'top.happya'
+                        groupId = 'net.william278'
                         artifactId = 'husksync'
-                        version = "$rootProjectto.version"
+                        version = "$rootProject.version"
                         artifact shadowJar
                         artifact javadocJar
                         artifact sourcesJar
@@ -148,13 +148,14 @@ subprojects {
         clean.delete "$rootDir/target"
     }
 }
+
+logger.lifecycle("Building HuskSync ${version} by William278")
+
 task getVersion {
     doLast {
         println project.version
     }
 }
-
-logger.lifecycle("Building HuskSync ${version} by William278")
 
 @SuppressWarnings('GrMethodMayBeStatic')
 def versionMetadata() {
