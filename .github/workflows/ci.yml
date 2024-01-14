@@ -11,13 +11,6 @@ jobs:
     if: ${{ github.event_name != 'pull_request' || github.repository != github.event.pull_request.head.repo.full_name }}
     runs-on: ubuntu-latest
     steps:
-      - uses: "jpenilla/actions/.github/workflows/shared-ci.yml@master"
-        secrets: inherit
-        with:
-         artifacts-path: 'target/*.jar'
-         modrinth-publish: true
-         hangar-publish: true
-         loom: true
       - name: Checkout Git Repository
         uses: actions/checkout@v3
       - name: Validate Gradle wrapper
