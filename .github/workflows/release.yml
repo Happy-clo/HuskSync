@@ -1,33 +1,19 @@
-name: Release Tests
+name: "build"
 
 on:
+  push:
+    branches: [ "**" ]
+    tags-ignore: [ "**" ]
+  pull_request:
   release:
-    types: [ 'published' ]
-
-permissions:
-  contents: read
-  checks: write
+    types: [ released ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 'Checkout for CI 🛎️'
-        uses: actions/checkout@v4
-      - name: 'Set up JDK 17 📦'
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      - name: 'Build with Gradle 🏗️'
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: build test publish
-        env:
-          RELEASES_MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-          RELEASES_MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-      - name: 'Publish Test Report 📊'
-        uses: mikepenz/action-junit-report@v4
-        if: success() || failure() # Continue on failure
-        with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
+  call-build:
+    uses: "jpenilla/actions/.github/workflows/shared-ci.yml@master"
+    secrets: inherit
+    with:
+      artifacts-path: 'target/*.jar'
+      modrinth-publish: true
+      hangar-publish: true
+      loom: true
