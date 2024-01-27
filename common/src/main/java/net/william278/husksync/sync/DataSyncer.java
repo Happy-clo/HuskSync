@@ -27,6 +27,7 @@ import net.william278.husksync.util.Task;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -89,7 +90,8 @@ public abstract class DataSyncer {
     // Calculates the max attempts the system should listen for user data for based on the latency value
     private long getMaxListenAttempts() {
         return BASE_LISTEN_ATTEMPTS + (
-                (Math.max(100, plugin.getSettings().getNetworkLatencyMilliseconds()) / 1000) * 20 / LISTEN_DELAY
+                (Math.max(100, plugin.getSettings().getSynchronization().getNetworkLatencyMilliseconds()) / 1000)
+                        * 20 / LISTEN_DELAY
         );
     }
 
@@ -107,11 +109,18 @@ public abstract class DataSyncer {
     protected void listenForRedisData(@NotNull OnlineUser user, @NotNull Supplier<Boolean> completionSupplier) {
         final AtomicLong timesRun = new AtomicLong(0L);
         final AtomicReference<Task.Repeating> task = new AtomicReference<>();
+        final AtomicBoolean processing = new AtomicBoolean(false);
         final Runnable runnable = () -> {
             if (user.isOffline()) {
                 task.get().cancel();
                 return;
             }
+            // Ensure only one task is running at a time
+            if (processing.getAndSet(true)) {
+                return;
+            }
+
+            // Timeout if the plugin is disabling or the max attempts have been reached
             if (plugin.isDisabling() || timesRun.getAndIncrement() > maxListenAttempts) {
                 task.get().cancel();
                 plugin.debug(String.format("[%s] Redis timed out after %s attempts; setting from database",
@@ -120,9 +129,11 @@ public abstract class DataSyncer {
                 return;
             }
 
+            // Fire the completion supplier
             if (completionSupplier.get()) {
                 task.get().cancel();
             }
+            processing.set(false);
         };
         task.set(plugin.getRepeatingTask(runnable, LISTEN_DELAY));
         task.get().run();
