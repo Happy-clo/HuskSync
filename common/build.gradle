@@ -16,7 +16,7 @@ dependencies {
         exclude module: 'slf4j-api'
     }
 
-    compileOnly 'org.projectlombok:lombok:1.18.30'
+    compileOnly 'org.projectlombok:lombok:1.18.32'
     compileOnly 'org.jetbrains:annotations:24.1.0'
     compileOnly 'net.kyori:adventure-api:4.15.0'
     compileOnly 'net.kyori:adventure-platform-api:4.3.2'
@@ -34,5 +34,5 @@ dependencies {
     testCompileOnly 'com.github.Exlll.ConfigLib:configlib-yaml:v4.4.0'
     testCompileOnly 'org.jetbrains:annotations:24.1.0'
 
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
 }
