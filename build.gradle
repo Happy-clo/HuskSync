@@ -3,7 +3,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'org.cadixdev.licenser' version '0.6.1' apply false
-    id 'org.ajoberstar.grgit' version '5.2.1'
+    id 'org.ajoberstar.grgit' version '5.2.2'
     id 'maven-publish'
     id 'java'
 }
@@ -20,6 +20,8 @@ ext {
     set 'jedis_version', jedis_version.toString()
     set 'mysql_driver_version', mysql_driver_version.toString()
     set 'mariadb_driver_version', mariadb_driver_version.toString()
+    set 'postgres_driver_version', postgres_driver_version.toString()
+    set 'mongodb_driver_version', mongodb_driver_version.toString()
     set 'snappy_version', snappy_version.toString()
 }
 
@@ -165,15 +167,11 @@ logger.lifecycle("Building HuskSync ${version} by William278")
 
 @SuppressWarnings('GrMethodMayBeStatic')
 def versionMetadata() {
-    // Get if there is a tag for this commit
-    def tag = grgit.tag.list().find { it.commit.id == grgit.head().id }
-    if (tag != null) {
-        return ''
-    }
-
-    // Otherwise, get the last commit hash and if it's a clean head
+    // Get the last commit hash and if it's a clean head
     if (grgit == null) {
         return '-' + System.getenv("GITHUB_RUN_NUMBER") ? 'build.' + System.getenv("GITHUB_RUN_NUMBER") : 'unknown'
     }
+    // If grgit DOES exist, get tag for this commit
+    def tag = grgit.tag.list().find { it.commit.id == grgit.head().id }
     return '-' + grgit.head().abbreviatedId + (grgit.status().clean ? '' : '-indev')
 }
