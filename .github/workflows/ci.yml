@@ -37,7 +37,7 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "linux-latest"
           prerelease: false
-          title: "HuskSync ${{ steps.project-version.outputs.VERSION }} 构建版本"
+          title: "HuskSync 构建版本"
           files: |
             target/*.jar
   runtime-test:
