@@ -102,6 +102,8 @@ Translations of the plugin locales are welcome to help make the plugin more acce
 
 ---
 &copy; [William278](https://william278.net/), 2023. Licensed under the Apache-2.0 License.
+> [!CAUTION]  
+> This branch is only for personal development, study and research. Please do not use any attachments directly. The author is not responsible for any problems with the source attachments.
 # Statement
 
 > [!CAUTION]  
