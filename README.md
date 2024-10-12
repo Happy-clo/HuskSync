@@ -1,8 +1,8 @@
 <!--suppress ALL -->
 <p align="center">
     <img src="images/banner.png" alt="HuskSync" />
-    <a href="https://github.com/WiIIiam278/HuskSync/actions/workflows/ci.yml">
-        <img src="https://img.shields.io/github/actions/workflow/status/WiIIiam278/HuskSync/ci.yml?branch=master&logo=github"/>
+    <a href="https://github.com/WiIIiam278/HuskSync/actions/workflows/ci_1.21.1.yml">
+        <img src="https://img.shields.io/github/actions/workflow/status/WiIIiam278/HuskSync/ci_1.21.1.yml?branch=master&logo=github"/>
     </a>
     <a href="https://repo.william278.net/#/releases/net/william278/husksync/">
         <img src="https://repo.william278.net/api/badge/latest/releases/net/william278/husksync/husksync-common?color=00fb9a&name=Maven&prefix=v" />
@@ -46,19 +46,19 @@
 ## Compatibility
 HuskSync supports the following [compatible versions](https://william278.net/docs/husksync/compatibility) of Minecraft. Since v3.7, you must download the correct version of HuskSync for your server:
 
-|    Minecraft     | Latest HuskSync | Java Version | Platforms     | Support Ends              |
-|:----------------:|:---------------:|:------------:|:--------------|:--------------------------|
-|      1.21.1      |    _latest_     |      21      | Paper, Fabric | ✅ **Active Release**      |
-|      1.20.6      |      3.6.8      |      17      | Paper         | ✅ **November 2024** (SRS) |
-|      1.20.4      |      3.6.8      |      17      | Paper         | ❌ _July 2024_             |
-|      1.20.1      |    _latest_     |      17      | Paper, Fabric | ✅ **November 2025** (LTS) |
-| 1.17.1 - 1.19.4  |      3.6.8      |      17      | Paper         | ❌ _Support ended_         |
-|      1.16.5      |      3.2.1      |      16      | Paper         | ❌ _Support ended_         |
+|    Minecraft    | Latest HuskSync | Java Version | Platforms     | Support Ends              |
+|:---------------:|:---------------:|:------------:|:--------------|:--------------------------|
+|     1.21.1      |    _latest_     |      21      | Paper, Fabric | ✅ **Active Release**      |
+|     1.20.6      |      3.6.8      |      17      | Paper         | ❌ _October 2024_          |
+|     1.20.4      |      3.6.8      |      17      | Paper         | ❌ _July 2024_             |
+|     1.20.1      |    _latest_     |      17      | Paper, Fabric | ✅ **November 2025** (LTS) |
+| 1.17.1 - 1.19.4 |      3.6.8      |      17      | Paper         | ❌ _Support ended_         |
+|     1.16.5      |      3.2.1      |      16      | Paper         | ❌ _Support ended_         |
 
 HuskSync is primarily developed against the latest release. Old Minecraft versions are allocated a support channel based on popularity, mod support, etc:
 
 * Long Term Support (LTS) &ndash; Supported for up to 12-18 months
-* Standard Release Support (SRS) &ndash; Supported for 3-6 months
+* Non-Long Term Support (Non-LTS) &ndash; Supported for 3-6 months
 
 Verify your purchase on Discord and [Download HuskSync](https://william278.net/project/husksync#download) for your server.
 

@@ -108,6 +108,9 @@ public class PostgresDatabase extends Database {
         );
         dataSource.setDataSourceProperties(properties);
 
+        // Check config for if tables should be created
+        if (!plugin.getSettings().getDatabase().isCreateTables()) return;
+
         // Prepare database schema; make tables if they don't exist
         try (Connection connection = dataSource.getConnection()) {
             final String[] databaseSchema = getSchemaStatements(String.format("database/%s_schema.sql", flavor));
@@ -134,9 +137,9 @@ public class PostgresDatabase extends Database {
                         // Update a user's name if it has changed in the database
                         try (Connection connection = getConnection()) {
                             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                                    UPDATE "%users_table%"
-                                    SET "username"=?
-                                    WHERE "uuid"=?"""))) {
+                                    UPDATE %users_table%
+                                    SET username=?
+                                    WHERE uuid=?;"""))) {
 
                                 statement.setString(1, user.getUsername());
                                 statement.setObject(2, existingUser.getUuid());
@@ -152,7 +155,7 @@ public class PostgresDatabase extends Database {
                     // Insert new player data into the database
                     try (Connection connection = getConnection()) {
                         try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                                INSERT INTO "%users_table%" ("uuid","username")
+                                INSERT INTO %users_table% (uuid,username)
                                 VALUES (?,?);"""))) {
 
                             statement.setObject(1, user.getUuid());
@@ -171,9 +174,9 @@ public class PostgresDatabase extends Database {
     public Optional<User> getUser(@NotNull UUID uuid) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    SELECT "uuid", "username"
-                    FROM "%users_table%"
-                    WHERE "uuid"=?"""))) {
+                    SELECT uuid, username
+                    FROM %users_table%
+                    WHERE uuid=?;"""))) {
 
                 statement.setObject(1, uuid);
 
@@ -194,9 +197,9 @@ public class PostgresDatabase extends Database {
     public Optional<User> getUserByName(@NotNull String username) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    SELECT "uuid", "username"
-                    FROM "%users_table%"
-                    WHERE "username"=?"""))) {
+                    SELECT uuid, username
+                    FROM %users_table%
+                    WHERE username=?;"""))) {
                 statement.setString(1, username);
 
                 final ResultSet resultSet = statement.executeQuery();
@@ -218,8 +221,8 @@ public class PostgresDatabase extends Database {
         final List<User> users = Lists.newArrayList();
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    SELECT `uuid`, `username`
-                    FROM `%users_table%`;
+                    SELECT uuid, username
+                    FROM %users_table%;
                     """))) {
                 final ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
@@ -238,10 +241,10 @@ public class PostgresDatabase extends Database {
     public Optional<DataSnapshot.Packed> getLatestSnapshot(@NotNull User user) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    SELECT "version_uuid", "timestamp", "data"
-                    FROM "%user_data_table%"
-                    WHERE "player_uuid"=?
-                    ORDER BY "timestamp" DESC
+                    SELECT version_uuid, timestamp, data
+                    FROM %user_data_table%
+                    WHERE player_uuid=?
+                    ORDER BY timestamp DESC
                     LIMIT 1;"""))) {
                 statement.setObject(1, user.getUuid());
                 final ResultSet resultSet = statement.executeQuery();
@@ -267,10 +270,10 @@ public class PostgresDatabase extends Database {
         final List<DataSnapshot.Packed> retrievedData = Lists.newArrayList();
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    SELECT "version_uuid", "timestamp",  "data"
-                    FROM "%user_data_table%"
-                    WHERE "player_uuid"=?
-                    ORDER BY "timestamp" DESC;"""))) {
+                    SELECT version_uuid, timestamp,  data
+                    FROM %user_data_table%
+                    WHERE player_uuid=?
+                    ORDER BY timestamp DESC;"""))) {
                 statement.setObject(1, user.getUuid());
                 final ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
@@ -294,10 +297,10 @@ public class PostgresDatabase extends Database {
     public Optional<DataSnapshot.Packed> getSnapshot(@NotNull User user, @NotNull UUID versionUuid) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    SELECT "version_uuid", "timestamp",  "data"
-                    FROM "%user_data_table%"
-                    WHERE "player_uuid"=? AND "version_uuid"=?
-                    ORDER BY "timestamp" DESC
+                    SELECT version_uuid, timestamp,  data
+                    FROM %user_data_table%
+                    WHERE player_uuid=? AND version_uuid=?
+                    ORDER BY timestamp DESC
                     LIMIT 1;"""))) {
                 statement.setObject(1, user.getUuid());
                 statement.setObject(2, versionUuid);
@@ -325,11 +328,16 @@ public class PostgresDatabase extends Database {
         if (unpinnedUserData.size() > maxSnapshots) {
             try (Connection connection = getConnection()) {
                 try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                        DELETE FROM "%user_data_table%"
-                        WHERE "player_uuid"=?
-                        AND "pinned" = FALSE
-                        ORDER BY "timestamp" ASC
-                        LIMIT %entry_count%;""".replace("%entry_count%",
+                        WITH cte AS (
+                          SELECT version_uuid
+                          FROM %user_data_table%
+                          WHERE player_uuid=?
+                            AND pinned=FALSE
+                          ORDER BY timestamp ASC
+                          LIMIT %entry_count%
+                        )
+                        DELETE FROM %user_data_table%
+                        WHERE version_uuid IN (SELECT version_uuid FROM cte);""".replace("%entry_count%",
                         Integer.toString(unpinnedUserData.size() - maxSnapshots))))) {
                     statement.setObject(1, user.getUuid());
                     statement.executeUpdate();
@@ -345,11 +353,10 @@ public class PostgresDatabase extends Database {
     public boolean deleteSnapshot(@NotNull User user, @NotNull UUID versionUuid) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    DELETE FROM "%user_data_table%"
-                    WHERE "player_uuid"=? AND "version_uuid"=?
-                    LIMIT 1;"""))) {
+                    DELETE FROM %user_data_table%
+                    WHERE player_uuid=? AND version_uuid=?;"""))) {
                 statement.setObject(1, user.getUuid());
-                statement.setString(2, versionUuid.toString());
+                statement.setObject(2, versionUuid);
                 return statement.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -363,12 +370,12 @@ public class PostgresDatabase extends Database {
     protected void rotateLatestSnapshot(@NotNull User user, @NotNull OffsetDateTime within) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    DELETE FROM "%user_data_table%"
-                    WHERE "player_uuid"=? AND "timestamp" = (
-                       SELECT "timestamp"
-                       FROM "%user_data_table%"
-                       WHERE "player_uuid"=? AND "timestamp" > ? AND "pinned" = FALSE
-                       ORDER BY "timestamp" ASC
+                    DELETE FROM %user_data_table%
+                    WHERE player_uuid=? AND timestamp = (
+                       SELECT timestamp
+                       FROM %user_data_table%
+                       WHERE player_uuid=? AND timestamp > ? AND pinned=FALSE
+                       ORDER BY timestamp ASC
                        LIMIT 1
                     );"""))) {
                 statement.setObject(1, user.getUuid());
@@ -386,8 +393,8 @@ public class PostgresDatabase extends Database {
     protected void createSnapshot(@NotNull User user, @NotNull DataSnapshot.Packed data) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    INSERT INTO "%user_data_table%"
-                    ("player_uuid","version_uuid","timestamp","save_cause","pinned","data")
+                    INSERT INTO %user_data_table%
+                    (player_uuid,version_uuid,timestamp,save_cause,pinned,data)
                     VALUES (?,?,?,?,?,?);"""))) {
                 statement.setObject(1, user.getUuid());
                 statement.setObject(2, data.getId());
@@ -407,9 +414,9 @@ public class PostgresDatabase extends Database {
     public void updateSnapshot(@NotNull User user, @NotNull DataSnapshot.Packed data) {
         try (Connection connection = getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
-                    UPDATE "%user_data_table%"
-                    SET "save_cause"=?,"pinned"=?,"data"=?
-                    WHERE "player_uuid"=? AND "version_uuid"=?
+                    UPDATE %user_data_table%
+                    SET save_cause=?,pinned=?,data=?
+                    WHERE player_uuid=? AND version_uuid=?
                     LIMIT 1;"""))) {
                 statement.setString(1, data.getSaveCause().name());
                 statement.setBoolean(2, data.isPinned());
@@ -427,7 +434,7 @@ public class PostgresDatabase extends Database {
     public void wipeDatabase() {
         try (Connection connection = getConnection()) {
             try (Statement statement = connection.createStatement()) {
-                statement.executeUpdate(formatStatementTables("DELETE FROM \"%user_data_table%\";"));
+                statement.executeUpdate(formatStatementTables("DELETE FROM %user_data_table%;"));
             }
         } catch (SQLException e) {
             plugin.log(Level.SEVERE, "Failed to wipe the database", e);

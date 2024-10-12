@@ -1,7 +1,7 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
-    id 'com.gradleup.shadow' version '8.3.0'
+    id 'com.gradleup.shadow' version '8.3.3'
     id 'org.cadixdev.licenser' version '0.6.1' apply false
     id 'fabric-loom' version '1.7-SNAPSHOT' apply false
     id 'org.ajoberstar.grgit' version '5.2.2'
@@ -85,9 +85,9 @@ allprojects {
     }
 
     dependencies {
-        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
-        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.11.0'
-        testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.11.0'
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.2'
+        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.11.1'
+        testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.11.2'
     }
 
     test {
@@ -197,7 +197,7 @@ logger.lifecycle("Building HuskSync ${version} by William278 for Minecraft ${min
 @SuppressWarnings('GrMethodMayBeStatic')
 def versionMetadata() {
     // If the force-hide-version-meta environment variable is set, return ''
-    if (System.getenv('force-hide-version-meta') != null) {
+    if (System.getProperty('force-hide-version-meta') != null) {
         return ''
     }
 
