@@ -4,7 +4,7 @@ plugins {
     id 'com.gradleup.shadow' version '8.3.3'
     id 'org.cadixdev.licenser' version '0.6.1' apply false
     id 'fabric-loom' version '1.7-SNAPSHOT' apply false
-    id 'org.ajoberstar.grgit' version '5.2.2'
+    id 'org.ajoberstar.grgit' version '5.3.0'
     id 'maven-publish'
     id 'java'
 }
@@ -86,7 +86,7 @@ allprojects {
 
     dependencies {
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.2'
-        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.11.1'
+        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.11.2'
         testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.11.2'
     }
 
